@@ -1,6 +1,28 @@
 # XIMA Formcycle Multiple File Upload
 
-Eine robuste, native Lösung für Multiple File Uploads in XIMA Formcycle 8.4.2+
+⚠️ **WICHTIG: Bitte zuerst Upload-Mode prüfen!**
+
+Dieses README beschreibt die Lösung für **AjaxUploadManager-basierte** Formcycle-Systeme.
+
+## 🔍 Welche Lösung brauche ich?
+
+**Führen Sie in der Browser-Console (F12) aus:**
+```javascript
+$('#ihr-upload-feld-id').attr('data-upload-mode')
+```
+
+| Ergebnis | Dokumentation |
+|----------|---------------|
+| **`"native"`** | ➡️ **[README-NATIVE-MODE.md](README-NATIVE-MODE.md)** (EMPFOHLEN für die meisten Fälle) |
+| `"ajax"` oder `undefined` | ➡️ Dieses README (siehe unten) |
+
+**Schnellstart für Native Mode:** [QUICK-START.md](QUICK-START.md)
+
+---
+
+# AjaxUploadManager-Lösung
+
+Eine robuste Lösung für Multiple File Uploads in XIMA Formcycle 8.4.2+ mit AjaxUploadManager
 
 ## 🎯 Features
 
