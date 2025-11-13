@@ -128,16 +128,16 @@
      */
     function patchFormcycleUpload() {
         // Prüfe ob Formcycle AjaxUploadManager verfügbar ist
-        if (!window.$ || !$.xutil || !$.xutil.ajaxUpload) {
-            log('⚠️ $.xutil.ajaxUpload noch nicht verfügbar, warte...');
+        if (!window.$ || !$.xutil || !$.xutil.ajaxUploadManager) {
+            log('⚠️ $.xutil.ajaxUploadManager noch nicht verfügbar, warte...');
             return false;
         }
 
-        const manager = $.xutil.ajaxUpload;
+        const manager = $.xutil.ajaxUploadManager;
 
         // Prüfe ob getUpload Funktion existiert
         if (typeof manager.getUpload !== 'function') {
-            log('⚠️ getUpload() Funktion nicht gefunden');
+            log('⚠️ getUpload() Funktion nicht gefunden in ajaxUploadManager');
             return false;
         }
 
@@ -147,7 +147,7 @@
             return true;
         }
 
-        log('🔧 Patche Formcycle getUpload() Funktion...');
+        log('🔧 Patche Formcycle ajaxUploadManager.getUpload() Funktion...');
 
         // Sichere Original-Funktion
         originalGetUpload = manager.getUpload;
@@ -478,9 +478,9 @@
      * Überwacht AJAX Upload Events
      */
     function hookUploadEvents() {
-        if (!$.xutil || !$.xutil.ajaxUpload) return;
+        if (!$.xutil || !$.xutil.ajaxUploadManager) return;
 
-        const manager = $.xutil.ajaxUpload;
+        const manager = $.xutil.ajaxUploadManager;
 
         // Hook in 'begin' Event
         manager.on('begin', function(event) {
@@ -572,11 +572,11 @@
                     console.error('Upload-Feld nicht gefunden');
                     return;
                 }
-                if (!$.xutil || !$.xutil.ajaxUpload) {
+                if (!$.xutil || !$.xutil.ajaxUploadManager) {
                     console.error('AjaxUploadManager nicht verfügbar');
                     return;
                 }
-                const result = $.xutil.ajaxUpload.getUpload($field[0]);
+                const result = $.xutil.ajaxUploadManager.getUpload($field[0]);
                 console.log('getUpload() Ergebnis:', result);
                 return result;
             },
