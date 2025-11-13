@@ -12,6 +12,7 @@
  * ✅ Funktioniert mit Native & AJAX Mode
  * ✅ Minimale Änderungen
  * ✅ Schöne UI mit Datei-Liste und Add/Remove Buttons
+ * ✅ Validiert Dateityp und Dateinamen-Länge
  *
  * DAS PROBLEM (Formcycle clientscript Zeile 083-084):
  * ```javascript
@@ -270,10 +271,14 @@
     /**
      * Validiert Dateien vor Upload
      */
-    function validateFiles(files) {
+    function validateFiles(files, $field) {
         const errors = [];
 
         log('🔍 Validiere', files.length, 'Datei(en)');
+
+        // Hole Validierungs-Einstellungen aus dem Feld
+        const allowedFormats = $field.data('allowedFormats') || [];
+        const maxFileNameLength = $field.data('maxFileNameLength');
 
         // Prüfe Anzahl
         if (files.length > CONFIG.MAX_FILES) {
@@ -286,12 +291,29 @@
         files.forEach((file, index) => {
             log(`   ${index + 1}. ${file.name} (${formatSize(file.size)})`);
 
+            // Prüfe Dateigröße
             if (file.size > CONFIG.MAX_FILE_SIZE) {
                 errors.push(`"${file.name}": Zu groß (${formatSize(file.size)})`);
             }
 
             if (file.size === 0) {
                 errors.push(`"${file.name}": Datei ist leer`);
+            }
+
+            // Prüfe Dateinamen-Länge (inkl. Endung)
+            if (maxFileNameLength && file.name.length > maxFileNameLength) {
+                errors.push(`"${file.name}": Dateiname zu lang (${file.name.length} Zeichen, max ${maxFileNameLength})`);
+            }
+
+            // Prüfe Dateityp
+            if (allowedFormats.length > 0) {
+                const fileExt = file.name.split('.').pop().toUpperCase();
+                const isAllowed = allowedFormats.some(format =>
+                    format.toUpperCase() === fileExt
+                );
+                if (!isAllowed) {
+                    errors.push(`"${file.name}": Dateityp .${fileExt} nicht erlaubt (erlaubt: ${allowedFormats.join(', ')})`);
+                }
             }
 
             totalSize += file.size;
@@ -362,7 +384,7 @@
 
                 log('📁 Dateien ausgewählt in', fieldId, ':', files.length);
 
-                const validation = validateFiles(files);
+                const validation = validateFiles(files, $field);
 
                 if (!validation.valid) {
                     // Blockiere Upload
@@ -454,6 +476,20 @@
                 });
             }
 
+            // Extrahiere max Dateinamen-Länge aus XM_FORM_MODEL
+            let maxFileNameLength = null;
+            if (window.XM_FORM_MODEL && XM_FORM_MODEL.validation && XM_FORM_MODEL.validation.fields) {
+                const fieldValidation = XM_FORM_MODEL.validation.fields[fieldId];
+                if (fieldValidation && fieldValidation.vmxl) {
+                    maxFileNameLength = parseInt(fieldValidation.vmxl, 10);
+                    log('   📏 Max Dateinamen-Länge gefunden:', maxFileNameLength);
+                }
+            }
+
+            // Speichere Validierungs-Infos am Feld für später
+            $field.data('allowedFormats', allowedFormats);
+            $field.data('maxFileNameLength', maxFileNameLength);
+
             const strategyText = CONFIG.PATCH_STRATEGY === 'all' ? 'Alle Felder' :
                                CONFIG.PATCH_STRATEGY === 'custom-upload' ? 'Custom-Upload' :
                                'Spezifische Felder';
@@ -470,8 +506,11 @@
             const sizeInfo = maxSizeText
                 ? `Max pro Datei: ${maxSizeText}`
                 : `${formatSize(CONFIG.MAX_FILE_SIZE)} pro Datei`;
+            const fileNameLengthInfo = maxFileNameLength
+                ? `Dateiname max ${maxFileNameLength} Zeichen`
+                : '';
 
-            const detailsLine = [formatInfo, sizeInfo, `Max ${CONFIG.MAX_FILES} Dateien`]
+            const detailsLine = [formatInfo, sizeInfo, `Max ${CONFIG.MAX_FILES} Dateien`, fileNameLengthInfo]
                 .filter(x => x)
                 .join(' • ');
 
