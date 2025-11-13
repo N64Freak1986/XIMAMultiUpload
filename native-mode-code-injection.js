@@ -482,6 +482,12 @@
 
         const manager = $.xutil.ajaxUploadManager;
 
+        // Prüfe ob Event-System verfügbar ist
+        if (typeof manager.on !== 'function') {
+            log('ℹ️ ajaxUploadManager hat kein Event-System (.on() nicht verfügbar)');
+            return;
+        }
+
         // Hook in 'begin' Event
         manager.on('begin', function(event) {
             log('📤 Upload gestartet:', event.fileName);
