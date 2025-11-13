@@ -431,6 +431,29 @@
                 opacity: '0'
             });
 
+            // Verstecke Formcycle-native Upload-UI-Elemente
+            $container.find('.xm-upl-wrapper').hide();
+            $container.find('.xm-upl-input-wrapper').hide();
+
+            // Extrahiere Informationen aus Formcycle UI
+            const allowedFormats = [];
+            $container.find('.xm-upl-format-value').each(function() {
+                const format = $(this).text().trim();
+                if (format) allowedFormats.push(format);
+            });
+
+            const maxSizeText = $container.find('.xm-upl-size-value').text().trim();
+            const titleAttr = $field.attr('title') || '';
+            const acceptAttr = $field.attr('accept') || '';
+
+            // Fallback: Nutze accept-Attribut wenn keine Formate gefunden
+            if (allowedFormats.length === 0 && acceptAttr) {
+                acceptAttr.split(',').forEach(ext => {
+                    const clean = ext.trim().replace('.', '').toUpperCase();
+                    if (clean) allowedFormats.push(clean);
+                });
+            }
+
             const strategyText = CONFIG.PATCH_STRATEGY === 'all' ? 'Alle Felder' :
                                CONFIG.PATCH_STRATEGY === 'custom-upload' ? 'Custom-Upload' :
                                'Spezifische Felder';
@@ -440,7 +463,18 @@
                 marginBottom: '15px'
             });
 
-            // Info-Banner
+            // Info-Banner mit erweiterten Infos
+            const formatInfo = allowedFormats.length > 0
+                ? `Formate: ${allowedFormats.join(', ')}`
+                : '';
+            const sizeInfo = maxSizeText
+                ? `Max pro Datei: ${maxSizeText}`
+                : `${formatSize(CONFIG.MAX_FILE_SIZE)} pro Datei`;
+
+            const detailsLine = [formatInfo, sizeInfo, `Max ${CONFIG.MAX_FILES} Dateien`]
+                .filter(x => x)
+                .join(' • ');
+
             const $banner = $('<div class="multi-upload-banner"></div>').css({
                 padding: '12px 15px',
                 background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -452,7 +486,7 @@
             }).html(`
                 <div style="margin-bottom:6px">🔧 Multiple-Upload aktiv (${strategyText})</div>
                 <div style="font-size:11px;font-weight:normal;opacity:0.9">
-                    Max ${CONFIG.MAX_FILES} Dateien • ${formatSize(CONFIG.MAX_FILE_SIZE)} pro Datei
+                    ${detailsLine}
                 </div>
             `);
 
