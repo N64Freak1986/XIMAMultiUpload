@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XIMA Formcycle Multiple Upload - Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            margin: 0 0 10px 0;
+        }
+
+        .header p {
+            margin: 0;
+            opacity: 0.9;
+        }
+
+        .demo-section {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .demo-section h2 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+
+        .info-box.warning {
+            background: #fff3cd;
+            border-left-color: #ff9800;
+        }
+
+        .info-box.success {
+            background: #d4edda;
+            border-left-color: #28a745;
+        }
+
+        .code-block {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 20px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 15px 0;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .code-block .keyword {
+            color: #c678dd;
+        }
+
+        .code-block .string {
+            color: #98c379;
+        }
+
+        .code-block .comment {
+            color: #5c6370;
+            font-style: italic;
+        }
+
+        .code-block .function {
+            color: #61afef;
+        }
+
+        .step {
+            display: flex;
+            align-items: flex-start;
+            margin: 20px 0;
+        }
+
+        .step-number {
+            background: #667eea;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+            margin-right: 15px;
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-content h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .feature-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .feature-card h4 {
+            margin: 0 0 10px 0;
+            color: #667eea;
+        }
+
+        .feature-card p {
+            margin: 0;
+            color: #666;
+            font-size: 14px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        table th,
+        table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        table th {
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+        }
+
+        table tr:hover {
+            background: #f5f5f5;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+
+        .button:hover {
+            background: #5568d3;
+        }
+
+        .button.secondary {
+            background: #6c757d;
+        }
+
+        .button.secondary:hover {
+            background: #5a6268;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            margin-top: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚀 XIMA Formcycle Multiple File Upload</h1>
+        <p>Robuste, native Lösung für Multiple File Uploads in Formcycle 8.4.2+</p>
+    </div>
+
+    <!-- Features -->
+    <div class="demo-section">
+        <h2>✨ Features</h2>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h4>📎 Multiple-Upload</h4>
+                <p>Echte HTML5 Multiple-File-Selection mit nativer Browser-Unterstützung</p>
+            </div>
+            <div class="feature-card">
+                <h4>✅ Client-Validierung</h4>
+                <p>Validierung VOR dem Upload spart Bandbreite und Zeit</p>
+            </div>
+            <div class="feature-card">
+                <h4>🔌 Native Integration</h4>
+                <p>Vollständige Integration mit Formcycle's AjaxUploadManager</p>
+            </div>
+            <div class="feature-card">
+                <h4>📊 Progress-Tracking</h4>
+                <p>Echtzeit-Fortschrittsanzeige für jeden Upload</p>
+            </div>
+            <div class="feature-card">
+                <h4>📁 Inkrementell</h4>
+                <p>Dateien aus verschiedenen Ordnern nacheinander hinzufügen</p>
+            </div>
+            <div class="feature-card">
+                <h4>🎨 Responsive UI</h4>
+                <p>Schöne, informative UI-Komponenten</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Installation -->
+    <div class="demo-section">
+        <h2>📥 Installation</h2>
+
+        <div class="step">
+            <div class="step-number">1</div>
+            <div class="step-content">
+                <h3>Script in Formcycle einbinden</h3>
+                <p>Gehen Sie zu: <strong>Admin → Formulare → Ihr Formular → JavaScript</strong></p>
+                <div class="code-block">
+<span class="comment">// Option 1: Externe Datei</span>
+&lt;<span class="keyword">script</span> <span class="string">src</span>=<span class="string">"formcycle-multiple-upload.js"</span>&gt;&lt;/<span class="keyword">script</span>&gt;
+
+<span class="comment">// Option 2: Inline (Inhalt von formcycle-multiple-upload.js)</span>
+&lt;<span class="keyword">script</span>&gt;
+(<span class="function">function</span>($) {
+    <span class="comment">// ... Script-Inhalt ...</span>
+})(jQuery);
+&lt;/<span class="keyword">script</span>&gt;
+                </div>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-number">2</div>
+            <div class="step-content">
+                <h3>Upload-Feld konfigurieren</h3>
+                <p>Im Formcycle Form-Designer:</p>
+                <ol>
+                    <li>Upload-Element hinzufügen</li>
+                    <li><strong>CSS-Klasse</strong> auf <code>custom-upload</code> setzen</li>
+                    <li>Speichern</li>
+                </ol>
+                <div class="info-box success">
+                    <strong>✅ Fertig!</strong> Das Script erkennt automatisch alle Upload-Felder mit der Klasse <code>custom-upload</code>.
+                </div>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-number">3</div>
+            <div class="step-content">
+                <h3>Optional: Konfiguration anpassen</h3>
+                <div class="code-block">
+<span class="comment">// In der formcycle-multiple-upload.js:</span>
+<span class="keyword">const</span> CONFIG = {
+    MAX_FILE_SIZE: <span class="string">10 * 1024 * 1024</span>,        <span class="comment">// 10 MB</span>
+    MAX_TOTAL_SIZE: <span class="string">100 * 1024 * 1024</span>,      <span class="comment">// 100 MB</span>
+    MAX_FILES: <span class="string">10</span>,                           <span class="comment">// Max 10 Dateien</span>
+    MAX_FILENAME_LENGTH: <span class="string">100</span>,                <span class="comment">// Max Länge</span>
+    UPLOAD_SELECTOR: <span class="string">'.custom-upload'</span>,       <span class="comment">// CSS-Klasse</span>
+    DEBUG: <span class="string">false</span>                             <span class="comment">// Debug-Logs</span>
+};
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Wie es funktioniert -->
+    <div class="demo-section">
+        <h2>⚙️ Wie es funktioniert</h2>
+
+        <h3>1️⃣ HTML5 Multiple-Attribut</h3>
+        <div class="code-block">
+$uploadField.<span class="function">prop</span>(<span class="string">'multiple'</span>, <span class="string">true</span>);
+        </div>
+        <p>Aktiviert native Browser-Unterstützung für Multiple-File-Selection.</p>
+
+        <h3>2️⃣ Client-side Validierung</h3>
+        <div class="code-block">
+$uploadField.<span class="function">errorFunc</span>(<span class="keyword">function</span>() {
+    <span class="comment">// Validiere Dateien VOR dem Upload</span>
+    <span class="keyword">const</span> files = <span class="keyword">this</span>.files;
+
+    <span class="comment">// Prüfe: Anzahl, Größe, Duplikate, etc.</span>
+    <span class="keyword">for</span> (file <span class="keyword">of</span> files) {
+        <span class="keyword">if</span> (file.size > MAX_FILE_SIZE) {
+            errors.<span class="function">push</span>(<span class="string">'Datei zu groß'</span>);
+        }
+    }
+
+    <span class="comment">// Rückgabe: Fehler-String oder '' bei Erfolg</span>
+    <span class="keyword">return</span> errors.length > <span class="string">0</span> ? errorMessage : <span class="string">''</span>;
+});
+        </div>
+
+        <h3>3️⃣ Formcycle AjaxUploadManager Events</h3>
+        <div class="code-block">
+<span class="comment">// Upload beginnt</span>
+$.<span class="function">xutil</span>.ajaxUpload.<span class="function">on</span>(<span class="string">'begin'</span>, <span class="keyword">function</span>(event) {
+    <span class="function">showProgress</span>(event.fileName, <span class="string">0</span>);
+});
+
+<span class="comment">// Upload-Fortschritt</span>
+$.<span class="function">xutil</span>.ajaxUpload.<span class="function">on</span>(<span class="string">'progress'</span>, <span class="keyword">function</span>(event) {
+    <span class="keyword">const</span> percent = (event.progress.loaded / event.progress.total) * <span class="string">100</span>;
+    <span class="function">updateProgress</span>(percent);
+});
+
+<span class="comment">// Upload erfolgreich</span>
+$.<span class="function">xutil</span>.ajaxUpload.<span class="function">on</span>(<span class="string">'success'</span>, <span class="keyword">function</span>(event) {
+    <span class="function">updateFileList</span>(event.item);
+});
+        </div>
+    </div>
+
+    <!-- API-Referenz -->
+    <div class="demo-section">
+        <h2>📚 API-Referenz</h2>
+
+        <h3>Formcycle AjaxUploadManager Events</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Event</th>
+                    <th>Beschreibung</th>
+                    <th>Event-Daten</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>begin</code></td>
+                    <td>Upload startet</td>
+                    <td><code>{ field, fileName, id, data }</code></td>
+                </tr>
+                <tr>
+                    <td><code>progress</code></td>
+                    <td>Upload-Fortschritt</td>
+                    <td><code>{ field, id, progress: { loaded, total } }</code></td>
+                </tr>
+                <tr>
+                    <td><code>success</code></td>
+                    <td>Upload erfolgreich</td>
+                    <td><code>{ field, id, item: FileItem }</code></td>
+                </tr>
+                <tr>
+                    <td><code>error</code></td>
+                    <td>Upload fehlgeschlagen</td>
+                    <td><code>{ field, id, error }</code></td>
+                </tr>
+                <tr>
+                    <td><code>complete</code></td>
+                    <td>Alle Uploads fertig</td>
+                    <td><code>{ field, container }</code></td>
+                </tr>
+                <tr>
+                    <td><code>remove</code></td>
+                    <td>Datei entfernt</td>
+                    <td><code>{ field, id }</code></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>JavaScript API</h3>
+        <div class="code-block">
+<span class="comment">// Alle Upload-Felder initialisieren</span>
+FormcycleMultiUpload.<span class="function">init</span>();
+
+<span class="comment">// Einzelnes Feld initialisieren</span>
+FormcycleMultiUpload.<span class="function">initField</span>(<span class="string">'#my_upload_field'</span>);
+
+<span class="comment">// Konfiguration abrufen</span>
+console.<span class="function">log</span>(FormcycleMultiUpload.config);
+        </div>
+    </div>
+
+    <!-- Validierung -->
+    <div class="demo-section">
+        <h2>🛡️ Validierung</h2>
+
+        <div class="info-box warning">
+            <strong>⚠️ Wichtig:</strong> Client-side Validierung ist NICHT sicherheitsrelevant!
+            Konfigurieren Sie zusätzlich Server-side Validierung in Formcycle.
+        </div>
+
+        <h3>Client-side Validierungen</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Validierung</th>
+                    <th>Standard-Wert</th>
+                    <th>Beschreibung</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Dateigröße</td>
+                    <td>10 MB</td>
+                    <td>Maximale Größe pro Datei</td>
+                </tr>
+                <tr>
+                    <td>Gesamtgröße</td>
+                    <td>100 MB</td>
+                    <td>Maximale Gesamtgröße aller Dateien</td>
+                </tr>
+                <tr>
+                    <td>Anzahl</td>
+                    <td>10</td>
+                    <td>Maximale Anzahl an Dateien</td>
+                </tr>
+                <tr>
+                    <td>Dateiname-Länge</td>
+                    <td>100 Zeichen</td>
+                    <td>Maximale Länge des Dateinamens</td>
+                </tr>
+                <tr>
+                    <td>Duplikate</td>
+                    <td>-</td>
+                    <td>Verhindert doppelte Dateinamen</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Server-side Validierung</h3>
+        <p>Konfigurieren Sie in Formcycle:</p>
+        <ol>
+            <li><strong>Upload-Element → Constraints → Maximale Dateigröße</strong></li>
+            <li><strong>Upload-Element → Constraints → Erlaubte Dateitypen</strong></li>
+            <li><strong>Formular → Einstellungen → Upload-Limits</strong></li>
+        </ol>
+    </div>
+
+    <!-- Troubleshooting -->
+    <div class="demo-section">
+        <h2>🐛 Troubleshooting</h2>
+
+        <h3>Problem: Upload-Feld akzeptiert keine Multiple-Auswahl</h3>
+        <div class="info-box">
+            <strong>Lösung:</strong>
+            <ol>
+                <li>Prüfen Sie, ob CSS-Klasse <code>custom-upload</code> gesetzt ist</li>
+                <li>Aktivieren Sie DEBUG-Modus: <code>CONFIG.DEBUG = true</code></li>
+                <li>Browser-Console öffnen und Logs prüfen</li>
+                <li>Prüfen: <code>$('#upload_feld').prop('multiple')</code> sollte <code>true</code> sein</li>
+            </ol>
+        </div>
+
+        <h3>Problem: Keine Progress-Anzeige</h3>
+        <div class="info-box">
+            <strong>Lösung:</strong>
+            <ol>
+                <li>Stellen Sie sicher, dass Formcycle >= 8.4.2</li>
+                <li>Prüfen: <code>$.xutil.ajaxUpload</code> ist definiert</li>
+                <li>Console-Check: <code>console.log($.xutil.ajaxUpload)</code></li>
+            </ol>
+        </div>
+
+        <h3>Problem: Events werden nicht getriggert</h3>
+        <div class="info-box">
+            <strong>Lösung:</strong>
+            <ol>
+                <li>Script muss NACH jQuery geladen werden</li>
+                <li>Prüfen: <code>XFC.ready()</code> wird ausgeführt</li>
+                <li>Console-Check: <code>console.log(window.XFC)</code></li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Links -->
+    <div class="demo-section">
+        <h2>📖 Weitere Ressourcen</h2>
+        <p>
+            <a href="README.md" class="button">📄 Vollständige Dokumentation</a>
+            <a href="MIGRATION.md" class="button secondary">🔄 Migrations-Anleitung</a>
+        </p>
+        <ul>
+            <li><strong>README.md</strong> - Vollständige Dokumentation mit allen Features</li>
+            <li><strong>MIGRATION.md</strong> - Anleitung zur Migration vom alten Script</li>
+            <li><strong>formcycle-multiple-upload.js</strong> - Das eigentliche Script</li>
+        </ul>
+    </div>
+
+    <footer>
+        <p><strong>XIMA Formcycle Multiple File Upload</strong> v1.0.0</p>
+        <p>Für XIMA Formcycle 8.4.2+</p>
+    </footer>
+</body>
+</html>
