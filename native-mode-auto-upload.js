@@ -63,15 +63,27 @@
     function getUploadedFilesFromDOM() {
         const files = [];
 
-        // Strategie 1: .xm-upl-wrapper > .xm-upl-label
-        $container.find('.xm-upl-wrapper').each(function() {
+        log('🔍 Suche hochgeladene Dateien in #xi-upl-1-xc...');
+
+        // WICHTIG: Nur Formcycle-Elemente, nicht unsere eigene .multi-upload-info Box!
+        // Strategie 1: .xm-upl-wrapper > .xm-upl-label (aber NICHT in .multi-upload-info)
+        $container.find('.xm-upl-wrapper').not('.multi-upload-info .xm-upl-wrapper').each(function() {
             const $wrapper = $(this);
+
+            // Skip if inside our own UI
+            if ($wrapper.closest('.multi-upload-info').length > 0) {
+                log('   ⊘ Überspringe (in .multi-upload-info):', $wrapper.text());
+                return; // continue
+            }
+
             const $label = $wrapper.find('.xm-upl-label');
             const $sizeSpan = $wrapper.find('.xm-upl-size');
 
             if ($label.length) {
                 const name = $label.text().trim();
                 const sizeText = $sizeSpan.length ? $sizeSpan.text().trim() : '';
+
+                log('   ? Prüfe:', name, '→', isValidFileName(name) ? '✓ gültig' : '✗ ungültig');
 
                 if (isValidFileName(name)) {
                     files.push({
@@ -80,21 +92,62 @@
                         sizeText: sizeText,
                         $element: $wrapper
                     });
+                    log('   ✓ Hinzugefügt:', name, sizeText);
                 }
             }
         });
 
         // Strategie 2: Fallback - direktes .xm-upl-label
         if (files.length === 0) {
-            $container.find('.xm-upl-label').each(function() {
-                const name = $(this).text().trim();
+            log('   → Fallback: Suche direktes .xm-upl-label');
+            $container.find('.xm-upl-label').not('.multi-upload-info .xm-upl-label').each(function() {
+                const $label = $(this);
+
+                // Skip if inside our own UI
+                if ($label.closest('.multi-upload-info').length > 0) {
+                    return; // continue
+                }
+
+                const name = $label.text().trim();
+                log('   ? Prüfe (Fallback):', name, '→', isValidFileName(name) ? '✓ gültig' : '✗ ungültig');
+
                 if (isValidFileName(name)) {
                     files.push({
                         name: name,
                         size: 0,
                         sizeText: '',
-                        $element: $(this).parent()
+                        $element: $label.parent()
                     });
+                    log('   ✓ Hinzugefügt (Fallback):', name);
+                }
+            });
+        }
+
+        // Strategie 3: Suche in Standard-Upload-Bereich (außerhalb von .multi-upload-info)
+        if (files.length === 0) {
+            log('   → Strategie 3: Suche im Standard-Upload-Bereich');
+            // Suche nach typischen Formcycle Upload-Strukturen
+            $container.children().not('.multi-upload-info, .multi-upload-error, .multi-upload-success').each(function() {
+                const $elem = $(this);
+                const text = $elem.text().trim();
+
+                // Prüfe ob es ein Label mit Dateiname ist
+                if ($elem.is('label') || $elem.find('label').length) {
+                    log('   ? Label gefunden:', text);
+                }
+
+                // Suche nach Dateinamen-Patterns
+                if (text && text.length > 0 && text.length < 200) {
+                    const hasExtension = /\.(pdf|jpg|jpeg|png|gif|doc|docx|xls|xlsx|txt|zip|html)$/i.test(text);
+                    if (hasExtension && isValidFileName(text)) {
+                        log('   ✓ Datei mit Extension gefunden:', text);
+                        files.push({
+                            name: text,
+                            size: 0,
+                            sizeText: '',
+                            $element: $elem
+                        });
+                    }
                 }
             });
         }
@@ -144,8 +197,11 @@
         const uploadedCount = uploadedFiles.length;
         const uploadedSize = uploadedFiles.reduce((sum, f) => sum + f.size, 0);
 
-        log('🔍 Validiere', files.length, 'neue Datei(en)');
-        log('   Bereits hochgeladen:', uploadedCount, 'Dateien,', formatSize(uploadedSize));
+        console.group('%c🔍 VALIDIERUNG', 'color: #2196F3; font-weight: bold');
+        log('Neue Dateien:', files.length);
+        files.forEach(f => log('   -', f.name, formatSize(f.size)));
+        log('Bereits hochgeladen:', uploadedCount, 'Dateien');
+        uploadedFiles.forEach(f => log('   -', f.name, f.sizeText || '(Größe unbekannt)'));
 
         // Prüfe Anzahl
         if (uploadedCount + files.length > CONFIG.MAX_FILES) {
@@ -182,7 +238,13 @@
 
         const valid = errors.length === 0;
 
-        log(valid ? '✅ Validierung OK' : '❌ Validierungsfehler:', errors);
+        if (valid) {
+            log('%c✅ Validierung OK', 'color: #28a745; font-weight: bold');
+        } else {
+            log('%c❌ Validierungsfehler:', 'color: #dc3545; font-weight: bold');
+            errors.forEach(err => log('   ✗', err));
+        }
+        console.groupEnd();
 
         return {
             valid: valid,
