@@ -13,6 +13,7 @@
  * ✅ Minimale Änderungen
  * ✅ Schöne UI mit Datei-Liste und Add/Remove Buttons
  * ✅ Validiert Dateityp und Dateinamen-Länge
+ * ✅ Behält gültige Dateien, entfernt nur ungültige
  *
  * DAS PROBLEM (Formcycle clientscript Zeile 083-084):
  * ```javascript
@@ -273,6 +274,8 @@
      */
     function validateFiles(files, $field) {
         const errors = [];
+        const validFiles = [];
+        const invalidFiles = [];
 
         log('🔍 Validiere', files.length, 'Datei(en)');
 
@@ -280,29 +283,26 @@
         const allowedFormats = $field.data('allowedFormats') || [];
         const maxFileNameLength = $field.data('maxFileNameLength');
 
-        // Prüfe Anzahl
-        if (files.length > CONFIG.MAX_FILES) {
-            errors.push(`Maximum von ${CONFIG.MAX_FILES} Dateien überschritten`);
-        }
-
         let totalSize = 0;
 
-        // Prüfe jede Datei
+        // Prüfe jede Datei einzeln
         files.forEach((file, index) => {
+            const fileErrors = [];
+
             log(`   ${index + 1}. ${file.name} (${formatSize(file.size)})`);
 
             // Prüfe Dateigröße
             if (file.size > CONFIG.MAX_FILE_SIZE) {
-                errors.push(`"${file.name}": Zu groß (${formatSize(file.size)})`);
+                fileErrors.push(`Zu groß (${formatSize(file.size)})`);
             }
 
             if (file.size === 0) {
-                errors.push(`"${file.name}": Datei ist leer`);
+                fileErrors.push(`Datei ist leer`);
             }
 
             // Prüfe Dateinamen-Länge (inkl. Endung)
             if (maxFileNameLength && file.name.length > maxFileNameLength) {
-                errors.push(`"${file.name}": Dateiname zu lang (${file.name.length} Zeichen, max ${maxFileNameLength})`);
+                fileErrors.push(`Dateiname zu lang (${file.name.length} Zeichen, max ${maxFileNameLength})`);
             }
 
             // Prüfe Dateityp
@@ -312,25 +312,61 @@
                     format.toUpperCase() === fileExt
                 );
                 if (!isAllowed) {
-                    errors.push(`"${file.name}": Dateityp .${fileExt} nicht erlaubt (erlaubt: ${allowedFormats.join(', ')})`);
+                    fileErrors.push(`Dateityp .${fileExt} nicht erlaubt (erlaubt: ${allowedFormats.join(', ')})`);
                 }
             }
 
-            totalSize += file.size;
+            // Datei ist ungültig?
+            if (fileErrors.length > 0) {
+                invalidFiles.push(file);
+                errors.push(`"${file.name}": ${fileErrors.join(', ')}`);
+            } else {
+                validFiles.push(file);
+                totalSize += file.size;
+            }
         });
 
-        // Prüfe Gesamtgröße
+        // Prüfe Anzahl (nur gültige Dateien)
+        if (validFiles.length > CONFIG.MAX_FILES) {
+            return {
+                valid: false,
+                allInvalid: false,
+                errors: [`Maximum von ${CONFIG.MAX_FILES} Dateien überschritten (${validFiles.length} gültige Dateien)`],
+                validFiles: [],
+                invalidFiles: files
+            };
+        }
+
+        // Prüfe Gesamtgröße (nur gültige Dateien)
         if (totalSize > CONFIG.MAX_TOTAL_SIZE) {
-            errors.push(`Gesamtgröße zu groß: ${formatSize(totalSize)}`);
+            return {
+                valid: false,
+                allInvalid: false,
+                errors: [`Gesamtgröße zu groß: ${formatSize(totalSize)} (max ${formatSize(CONFIG.MAX_TOTAL_SIZE)})`],
+                validFiles: [],
+                invalidFiles: files
+            };
         }
 
         if (errors.length > 0) {
-            log('❌ Validierungsfehler:', errors);
-            return { valid: false, errors: errors };
+            log('❌ Validierungsfehler für', invalidFiles.length, 'Datei(en)');
+            return {
+                valid: false,
+                allInvalid: validFiles.length === 0,
+                errors: errors,
+                validFiles: validFiles,
+                invalidFiles: invalidFiles
+            };
         }
 
-        log('✅ Validierung OK');
-        return { valid: true, errors: [] };
+        log('✅ Alle Dateien gültig');
+        return {
+            valid: true,
+            allInvalid: false,
+            errors: [],
+            validFiles: validFiles,
+            invalidFiles: []
+        };
     }
 
     /**
@@ -387,16 +423,41 @@
                 const validation = validateFiles(files, $field);
 
                 if (!validation.valid) {
-                    // Blockiere Upload
-                    alert('Upload blockiert:\n\n' + validation.errors.join('\n'));
+                    if (validation.allInvalid) {
+                        // ALLE Dateien ungültig - leere Input komplett
+                        alert('❌ Alle Dateien ungültig:\n\n' + validation.errors.join('\n'));
+                        e.target.value = '';
+                        log('❌ Alle Dateien entfernt (alle ungültig)');
+                    } else if (validation.validFiles.length > 0) {
+                        // Einige Dateien gültig, einige ungültig - behalte nur gültige
+                        const message = [
+                            `⚠️ ${validation.invalidFiles.length} ungültige Datei(en) wurden entfernt:`,
+                            '',
+                            ...validation.errors,
+                            '',
+                            `✅ ${validation.validFiles.length} gültige Datei(en) behalten`
+                        ].join('\n');
 
-                    // Leere Input
-                    e.target.value = '';
-                    log('❌ Upload blockiert');
+                        alert(message);
+
+                        // Erstelle neue FileList nur mit gültigen Dateien
+                        const dt = new DataTransfer();
+                        validation.validFiles.forEach(file => {
+                            dt.items.add(file);
+                        });
+                        e.target.files = dt.files;
+
+                        log(`✅ ${validation.validFiles.length} gültige Dateien behalten, ${validation.invalidFiles.length} ungültige entfernt`);
+                    } else {
+                        // Keine gültigen Dateien (z.B. zu viele oder Gesamtgröße überschritten)
+                        alert('❌ Upload nicht möglich:\n\n' + validation.errors.join('\n'));
+                        e.target.value = '';
+                        log('❌ Alle Dateien entfernt');
+                    }
                     return false;
                 }
 
-                log('✅ Dateien werden hochgeladen...');
+                log('✅ Alle Dateien gültig, werden hochgeladen...');
             });
         });
 
