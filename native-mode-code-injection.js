@@ -43,7 +43,19 @@
         MAX_TOTAL_SIZE: 100 * 1024 * 1024,
         MAX_FILES: 10,
         DEBUG: true,
-        PATCH_DELAY: 100  // ms zu warten bevor patchen
+        PATCH_DELAY: 100,  // ms zu warten bevor patchen
+
+        // PATCH-STRATEGIE:
+        // 'all' = Patcht ALLE Upload-Felder
+        // 'custom-upload' = Patcht nur Felder mit CSS-Klasse 'custom-upload'
+        // 'specific' = Patcht nur spezifische IDs (siehe SPECIFIC_FIELDS)
+        PATCH_STRATEGY: 'custom-upload',  // 'all' | 'custom-upload' | 'specific'
+
+        // Bei PATCH_STRATEGY='specific': Welche Feld-IDs patchen?
+        SPECIFIC_FIELDS: ['xi-upl-1', 'xi-upl-2'],
+
+        // Respektiere XFC_METADATA.limits.singleFileUpload?
+        RESPECT_METADATA_LIMITS: true
     };
 
     // ============================================
@@ -69,6 +81,47 @@
 
     let originalGetUpload = null;
     let patchApplied = false;
+
+    /**
+     * Prüft ob ein Feld gepatcht werden soll
+     */
+    function shouldPatchField($field) {
+        const fieldId = $field.attr('id');
+        const fieldClasses = $field.attr('class') || '';
+
+        switch (CONFIG.PATCH_STRATEGY) {
+            case 'all':
+                return {
+                    patch: true,
+                    reason: 'Strategie=ALL → Alle Felder werden gepatcht'
+                };
+
+            case 'custom-upload':
+                const hasCustomClass = $field.hasClass('custom-upload');
+                return {
+                    patch: hasCustomClass,
+                    reason: hasCustomClass
+                        ? `Feld hat 'custom-upload' Klasse`
+                        : `Feld hat KEINE 'custom-upload' Klasse (Klassen: ${fieldClasses})`
+                };
+
+            case 'specific':
+                const isSpecific = CONFIG.SPECIFIC_FIELDS.includes(fieldId);
+                return {
+                    patch: isSpecific,
+                    reason: isSpecific
+                        ? `Feld-ID '${fieldId}' ist in SPECIFIC_FIELDS`
+                        : `Feld-ID '${fieldId}' ist NICHT in SPECIFIC_FIELDS`
+                };
+
+            default:
+                log('⚠️ Unbekannte PATCH_STRATEGY:', CONFIG.PATCH_STRATEGY);
+                return {
+                    patch: false,
+                    reason: 'Unbekannte Strategie'
+                };
+        }
+    }
 
     /**
      * Patcht Formcycle's getUpload() Funktion
@@ -114,6 +167,51 @@
                 log('   ⚠️ Feld nicht gefunden, nutze Original');
                 return originalResult;
             }
+
+            // ============================================
+            // PRÜFE: Soll dieses Feld gepatcht werden?
+            // ============================================
+
+            const shouldPatch = shouldPatchField($field);
+            if (!shouldPatch.patch) {
+                log('   ℹ️ Feld wird NICHT gepatcht:', shouldPatch.reason);
+                return originalResult;
+            }
+
+            log('   ✅ Feld wird gepatcht:', shouldPatch.reason);
+
+            // ============================================
+            // PRÜFE: XFC_METADATA.limits
+            // ============================================
+
+            if (CONFIG.RESPECT_METADATA_LIMITS && window.XFC_METADATA && XFC_METADATA.limits) {
+                const limits = XFC_METADATA.limits;
+                log('   📋 XFC_METADATA.limits gefunden:', limits);
+
+                if (limits.singleFileUpload === true || limits.singleFileUpload === 'true') {
+                    log('   ⚠️ singleFileUpload=true → Nutze Original (nur 1 Datei erlaubt)');
+                    return originalResult;
+                }
+
+                if (limits.singleFileUpload === false || limits.singleFileUpload === 'false') {
+                    log('   ✅ singleFileUpload=false → Multiple-Upload erlaubt!');
+                }
+
+                // Weitere Limits prüfen
+                if (limits.maxFiles && typeof limits.maxFiles === 'number') {
+                    log('   📊 maxFiles Limit:', limits.maxFiles);
+                    CONFIG.MAX_FILES = limits.maxFiles;
+                }
+
+                if (limits.maxFileSize && typeof limits.maxFileSize === 'number') {
+                    log('   📊 maxFileSize Limit:', limits.maxFileSize, 'bytes');
+                    CONFIG.MAX_FILE_SIZE = limits.maxFileSize;
+                }
+            }
+
+            // ============================================
+            // HOLE ALLE DATEIEN
+            // ============================================
 
             const inputElement = $field[0];
             if (!inputElement || !inputElement.files) {
@@ -215,68 +313,138 @@
      * Fügt Validierung zu Upload-Feldern hinzu
      */
     function addValidation() {
-        const $uploadField = $('#xi-upl-1');
+        let $fields;
 
-        if (!$uploadField.length) {
-            log('⚠️ Upload-Feld nicht gefunden');
+        // Finde Felder basierend auf PATCH_STRATEGY
+        switch (CONFIG.PATCH_STRATEGY) {
+            case 'all':
+                $fields = $('input[type="file"]');
+                log('📋 Füge Validierung zu ALLEN Upload-Feldern hinzu:', $fields.length);
+                break;
+
+            case 'custom-upload':
+                $fields = $('input[type="file"].custom-upload');
+                log('📋 Füge Validierung zu .custom-upload Feldern hinzu:', $fields.length);
+                break;
+
+            case 'specific':
+                const selectors = CONFIG.SPECIFIC_FIELDS.map(id => `#${id}`).join(', ');
+                $fields = $(selectors);
+                log('📋 Füge Validierung zu spezifischen Feldern hinzu:', $fields.length);
+                break;
+
+            default:
+                log('⚠️ Unbekannte PATCH_STRATEGY, validiere nicht');
+                return;
+        }
+
+        if (!$fields || $fields.length === 0) {
+            log('⚠️ Keine Upload-Felder gefunden für Validierung');
             return;
         }
 
-        // Aktiviere multiple-Attribut
-        $uploadField.prop('multiple', true);
-        log('✅ Multiple-Attribut aktiviert');
+        // Aktiviere multiple-Attribut und Validierung für jedes Feld
+        $fields.each(function() {
+            const $field = $(this);
+            const fieldId = $field.attr('id') || '(keine ID)';
 
-        // Change-Event für Validierung
-        $uploadField.off('change.injection').on('change.injection', function(e) {
-            const files = Array.from(e.target.files || []);
+            // Aktiviere multiple-Attribut
+            $field.prop('multiple', true);
+            log('  ✅ Multiple-Attribut aktiviert für:', fieldId);
 
-            if (files.length === 0) return;
+            // Change-Event für Validierung
+            $field.off('change.injection').on('change.injection', function(e) {
+                const files = Array.from(e.target.files || []);
 
-            log('📁 Dateien ausgewählt:', files.length);
+                if (files.length === 0) return;
 
-            const validation = validateFiles(files);
+                log('📁 Dateien ausgewählt in', fieldId, ':', files.length);
 
-            if (!validation.valid) {
-                // Blockiere Upload
-                alert('Upload blockiert:\n\n' + validation.errors.join('\n'));
+                const validation = validateFiles(files);
 
-                // Leere Input
-                e.target.value = '';
-                log('❌ Upload blockiert');
-                return false;
-            }
+                if (!validation.valid) {
+                    // Blockiere Upload
+                    alert('Upload blockiert:\n\n' + validation.errors.join('\n'));
 
-            log('✅ Dateien werden hochgeladen...');
+                    // Leere Input
+                    e.target.value = '';
+                    log('❌ Upload blockiert');
+                    return false;
+                }
+
+                log('✅ Dateien werden hochgeladen...');
+            });
         });
+
+        log('✅ Validierung hinzugefügt zu', $fields.length, 'Feld(ern)');
     }
 
     /**
-     * Erstellt Info-UI
+     * Erstellt Info-UI für gepatchte Felder
      */
     function createUI() {
-        const $container = $('#xi-upl-1-xc');
+        let $fields;
 
-        $('.multi-upload-info').remove();
+        // Finde Felder basierend auf PATCH_STRATEGY
+        switch (CONFIG.PATCH_STRATEGY) {
+            case 'all':
+                $fields = $('input[type="file"]');
+                break;
+            case 'custom-upload':
+                $fields = $('input[type="file"].custom-upload');
+                break;
+            case 'specific':
+                const selectors = CONFIG.SPECIFIC_FIELDS.map(id => `#${id}`).join(', ');
+                $fields = $(selectors);
+                break;
+            default:
+                return;
+        }
 
-        const $ui = $('<div class="multi-upload-info"></div>').css({
-            marginBottom: '15px',
-            padding: '15px',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            color: 'white',
-            borderRadius: '8px',
-            fontWeight: 'bold',
-            textAlign: 'center'
+        if (!$fields || $fields.length === 0) {
+            log('⚠️ Keine Felder für UI gefunden');
+            return;
+        }
+
+        // Erstelle Info-Box für jedes Feld
+        $fields.each(function() {
+            const $field = $(this);
+            const fieldId = $field.attr('id');
+            const $container = $field.closest('[id$="-xc"]');
+
+            if (!$container.length) {
+                log('⚠️ Container nicht gefunden für', fieldId);
+                return;
+            }
+
+            // Entferne alte Info-Box
+            $container.find('.multi-upload-info').remove();
+
+            const strategyText = CONFIG.PATCH_STRATEGY === 'all' ? 'Alle Felder' :
+                               CONFIG.PATCH_STRATEGY === 'custom-upload' ? 'Custom-Upload' :
+                               'Spezifische Felder';
+
+            const $ui = $('<div class="multi-upload-info"></div>').css({
+                marginBottom: '15px',
+                padding: '12px 15px',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                borderRadius: '8px',
+                fontWeight: 'bold',
+                textAlign: 'center',
+                fontSize: '13px'
+            });
+
+            $ui.html(`
+                <div style="margin-bottom:6px">🔧 Multiple-Upload aktiv (${strategyText})</div>
+                <div style="font-size:11px;font-weight:normal;opacity:0.9">
+                    getUpload() gepatcht • Max ${CONFIG.MAX_FILES} Dateien • ${formatSize(CONFIG.MAX_FILE_SIZE)} pro Datei
+                </div>
+            `);
+
+            $container.prepend($ui);
+            log('✅ Info-UI erstellt für:', fieldId);
         });
-
-        $ui.html(`
-            <div style="margin-bottom:8px">🔧 Multiple-Upload aktiv (Code Injection)</div>
-            <div style="font-size:12px;font-weight:normal;opacity:0.9">
-                Formcycle's getUpload() wurde gepatcht<br>
-                Max ${CONFIG.MAX_FILES} Dateien • Max ${formatSize(CONFIG.MAX_FILE_SIZE)} pro Datei
-            </div>
-        `);
-
-        $container.prepend($ui);
     }
 
     /**
@@ -358,6 +526,30 @@
         console.log('Max Gesamtgröße:', formatSize(CONFIG.MAX_TOTAL_SIZE));
         console.log('Max Anzahl:', CONFIG.MAX_FILES);
         console.log('Modus: Code Injection (Monkey Patching)');
+        console.log('');
+        console.log('Patch-Strategie:', CONFIG.PATCH_STRATEGY);
+        if (CONFIG.PATCH_STRATEGY === 'custom-upload') {
+            console.log('  → Patcht nur Felder mit CSS-Klasse "custom-upload"');
+        } else if (CONFIG.PATCH_STRATEGY === 'specific') {
+            console.log('  → Patcht nur:', CONFIG.SPECIFIC_FIELDS.join(', '));
+        } else if (CONFIG.PATCH_STRATEGY === 'all') {
+            console.log('  → Patcht ALLE Upload-Felder');
+        }
+        console.log('Respektiere XFC_METADATA.limits:', CONFIG.RESPECT_METADATA_LIMITS);
+
+        // Zeige XFC_METADATA.limits wenn verfügbar
+        if (window.XFC_METADATA && XFC_METADATA.limits) {
+            console.log('');
+            console.log('XFC_METADATA.limits gefunden:');
+            console.log('  singleFileUpload:', XFC_METADATA.limits.singleFileUpload);
+            if (XFC_METADATA.limits.maxFiles) {
+                console.log('  maxFiles:', XFC_METADATA.limits.maxFiles);
+            }
+            if (XFC_METADATA.limits.maxFileSize) {
+                console.log('  maxFileSize:', formatSize(XFC_METADATA.limits.maxFileSize));
+            }
+        }
+
         console.groupEnd();
 
         // Starte Patch-Versuche
