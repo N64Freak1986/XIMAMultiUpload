@@ -11,7 +11,7 @@
  * ✅ KEINE Workarounds nötig
  * ✅ Funktioniert mit Native & AJAX Mode
  * ✅ Minimale Änderungen
- * ✅ Funktioniert für ALLE Upload-Felder im Formular
+ * ✅ Schöne UI mit Datei-Liste und Add/Remove Buttons
  *
  * DAS PROBLEM (Formcycle clientscript Zeile 083-084):
  * ```javascript
@@ -382,7 +382,7 @@
     }
 
     /**
-     * Erstellt Info-UI für gepatchte Felder
+     * Erstellt UI mit Datei-Liste und Buttons für gepatchte Felder
      */
     function createUI() {
         let $fields;
@@ -408,7 +408,7 @@
             return;
         }
 
-        // Erstelle Info-Box für jedes Feld
+        // Erstelle UI für jedes Feld
         $fields.each(function() {
             const $field = $(this);
             const fieldId = $field.attr('id');
@@ -419,34 +419,254 @@
                 return;
             }
 
-            // Entferne alte Info-Box
-            $container.find('.multi-upload-info').remove();
+            // Entferne alte UI
+            $container.find('.multi-upload-ui').remove();
+
+            // Verstecke Original-Input
+            $field.css({
+                position: 'absolute',
+                left: '-9999px',
+                width: '1px',
+                height: '1px',
+                opacity: '0'
+            });
 
             const strategyText = CONFIG.PATCH_STRATEGY === 'all' ? 'Alle Felder' :
                                CONFIG.PATCH_STRATEGY === 'custom-upload' ? 'Custom-Upload' :
                                'Spezifische Felder';
 
-            const $ui = $('<div class="multi-upload-info"></div>').css({
-                marginBottom: '15px',
+            // Erstelle UI-Container
+            const $ui = $('<div class="multi-upload-ui"></div>').css({
+                marginBottom: '15px'
+            });
+
+            // Info-Banner
+            const $banner = $('<div class="multi-upload-banner"></div>').css({
                 padding: '12px 15px',
                 background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                 color: 'white',
-                borderRadius: '8px',
+                borderRadius: '8px 8px 0 0',
                 fontWeight: 'bold',
                 textAlign: 'center',
                 fontSize: '13px'
-            });
-
-            $ui.html(`
+            }).html(`
                 <div style="margin-bottom:6px">🔧 Multiple-Upload aktiv (${strategyText})</div>
                 <div style="font-size:11px;font-weight:normal;opacity:0.9">
-                    getUpload() gepatcht • Max ${CONFIG.MAX_FILES} Dateien • ${formatSize(CONFIG.MAX_FILE_SIZE)} pro Datei
+                    Max ${CONFIG.MAX_FILES} Dateien • ${formatSize(CONFIG.MAX_FILE_SIZE)} pro Datei
                 </div>
             `);
 
-            $container.prepend($ui);
-            log('✅ Info-UI erstellt für:', fieldId);
+            // Datei-Liste Container
+            const $fileList = $('<div class="multi-upload-file-list"></div>').css({
+                border: '2px solid #667eea',
+                borderTop: 'none',
+                borderRadius: '0 0 8px 8px',
+                padding: '15px',
+                background: '#f8f9fa',
+                minHeight: '60px'
+            });
+
+            const $fileListContent = $('<div class="file-list-content"></div>');
+            const $emptyState = $('<div class="empty-state"></div>').css({
+                textAlign: 'center',
+                color: '#6c757d',
+                padding: '20px 10px',
+                fontSize: '14px'
+            }).html('📁 Keine Dateien ausgewählt');
+
+            $fileListContent.append($emptyState);
+            $fileList.append($fileListContent);
+
+            // Button Container
+            const $buttons = $('<div class="multi-upload-buttons"></div>').css({
+                marginTop: '10px',
+                display: 'flex',
+                gap: '10px',
+                flexWrap: 'wrap'
+            });
+
+            const $btnAdd = $('<button type="button" class="btn-add-files"></button>').css({
+                padding: '10px 20px',
+                background: '#28a745',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                flex: '1',
+                minWidth: '150px'
+            }).html('➕ Dateien auswählen');
+
+            const $btnClear = $('<button type="button" class="btn-clear-all"></button>').css({
+                padding: '10px 20px',
+                background: '#dc3545',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                display: 'none'
+            }).html('🗑️ Alle löschen');
+
+            $buttons.append($btnAdd, $btnClear);
+
+            // Stats Container
+            const $stats = $('<div class="multi-upload-stats"></div>').css({
+                marginTop: '10px',
+                padding: '8px 12px',
+                background: '#e9ecef',
+                borderRadius: '6px',
+                fontSize: '12px',
+                color: '#495057',
+                display: 'none'
+            });
+
+            $ui.append($banner, $fileList, $buttons, $stats);
+            $container.find('label').after($ui);
+
+            // Setup Event-Handlers
+            setupUIHandlers($field, $fileListContent, $emptyState, $btnClear, $stats);
+
+            log('✅ UI erstellt für:', fieldId);
         });
+    }
+
+    /**
+     * Setup Event-Handler für UI
+     */
+    function setupUIHandlers($field, $fileListContent, $emptyState, $btnClear, $stats) {
+        const fieldId = $field.attr('id');
+        const $container = $field.closest('[id$="-xc"]');
+        const $ui = $container.find('.multi-upload-ui');
+
+        // "Dateien auswählen" Button
+        $ui.find('.btn-add-files').on('click', function() {
+            $field.trigger('click');
+        });
+
+        // "Alle löschen" Button
+        $btnClear.on('click', function() {
+            if (confirm('Alle Dateien löschen?')) {
+                $field.val('');
+                updateFileList($field, $fileListContent, $emptyState, $btnClear, $stats);
+                log('🗑️ Alle Dateien gelöscht');
+            }
+        });
+
+        // File-Change Handler
+        $field.on('change', function() {
+            updateFileList($field, $fileListContent, $emptyState, $btnClear, $stats);
+        });
+
+        // Initial Update
+        updateFileList($field, $fileListContent, $emptyState, $btnClear, $stats);
+    }
+
+    /**
+     * Aktualisiert die Datei-Liste im UI
+     */
+    function updateFileList($field, $fileListContent, $emptyState, $btnClear, $stats) {
+        const files = Array.from($field[0].files || []);
+
+        log('🔄 Aktualisiere UI:', files.length, 'Dateien');
+
+        $fileListContent.empty();
+
+        if (files.length === 0) {
+            $fileListContent.append($emptyState);
+            $btnClear.hide();
+            $stats.hide();
+            return;
+        }
+
+        // Zeige Dateien
+        let totalSize = 0;
+        files.forEach((file, index) => {
+            totalSize += file.size;
+
+            const $fileItem = $('<div class="file-item"></div>').css({
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '10px 12px',
+                marginBottom: '8px',
+                background: 'white',
+                border: '1px solid #dee2e6',
+                borderRadius: '6px'
+            });
+
+            const $fileInfo = $('<div class="file-info"></div>').css({
+                flex: '1',
+                minWidth: '0'
+            });
+
+            const $fileName = $('<div class="file-name"></div>').css({
+                fontWeight: 'bold',
+                fontSize: '13px',
+                color: '#212529',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
+            }).text(file.name);
+
+            const $fileSize = $('<div class="file-size"></div>').css({
+                fontSize: '12px',
+                color: '#6c757d',
+                marginTop: '2px'
+            }).text(formatSize(file.size));
+
+            $fileInfo.append($fileName, $fileSize);
+
+            const $btnRemove = $('<button type="button" class="btn-remove"></button>').css({
+                padding: '6px 12px',
+                background: '#dc3545',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '12px',
+                marginLeft: '10px'
+            }).html('✕').attr('title', 'Datei entfernen');
+
+            // Remove-Handler
+            $btnRemove.on('click', function() {
+                removeFile($field, index, $fileListContent, $emptyState, $btnClear, $stats);
+            });
+
+            $fileItem.append($fileInfo, $btnRemove);
+            $fileListContent.append($fileItem);
+        });
+
+        // Zeige Stats
+        $stats.html(`
+            📊 <strong>${files.length}</strong> Datei(en) •
+            <strong>${formatSize(totalSize)}</strong> gesamt •
+            Noch <strong>${CONFIG.MAX_FILES - files.length}</strong> erlaubt
+        `).show();
+
+        $btnClear.show();
+    }
+
+    /**
+     * Entfernt eine einzelne Datei
+     */
+    function removeFile($field, indexToRemove, $fileListContent, $emptyState, $btnClear, $stats) {
+        const files = Array.from($field[0].files || []);
+
+        log('🗑️ Entferne Datei:', indexToRemove, files[indexToRemove].name);
+
+        // Erstelle neue FileList ohne die zu entfernende Datei
+        const dt = new DataTransfer();
+        files.forEach((file, index) => {
+            if (index !== indexToRemove) {
+                dt.items.add(file);
+            }
+        });
+
+        $field[0].files = dt.files;
+        updateFileList($field, $fileListContent, $emptyState, $btnClear, $stats);
     }
 
     /**
