@@ -210,7 +210,7 @@
 
         $header.html(
             '<div>🎯 Multiple-Upload <span style="background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:3px;font-size:12px">AKTIV</span></div>' +
-            '<button class="btn-add-more" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3);color:white;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;font-weight:500">➕ Weitere hinzufügen</button>'
+            '<button type="button" class="btn-add-more" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3);color:white;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;font-weight:500">➕ Weitere hinzufügen</button>'
         );
 
         // Status Bar mit Gesamtgröße
@@ -248,7 +248,7 @@
 
         $footer.html(
             '<div>💡 <strong>Tipp:</strong> Strg/Cmd+Klick für mehrere Dateien</div>' +
-            '<button class="btn-clear-all" style="background:#dc3545;border:none;color:white;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:500">🗑️ Alle löschen</button>'
+            '<button type="button" class="btn-clear-all" style="background:#dc3545;border:none;color:white;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:500">🗑️ Alle löschen</button>'
         );
 
         $ui.append($header).append($status).append($fileList).append($footer);
@@ -328,7 +328,7 @@
                     `<div style="font-weight:500;margin-bottom:2px">📄 ${shortName}</div>` +
                     `<div style="font-size:11px;color:#999">${formatSize(file.size)}</div>` +
                     `</div>` +
-                    `<button class="btn-remove" data-file-id="${file._multiUploadId}" style="background:#dc3545;border:none;color:white;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:500">✕ Entfernen</button>`
+                    `<button type="button" class="btn-remove" data-file-id="${file._multiUploadId}" style="background:#dc3545;border:none;color:white;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:500">✕ Entfernen</button>`
                 );
 
                 $item.find('.btn-remove').on('click', function() {

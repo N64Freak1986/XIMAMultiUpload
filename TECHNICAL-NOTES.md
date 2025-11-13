@@ -426,7 +426,95 @@ if (!$clamav->scan($_FILES['upl2']['tmp_name'])) {
 
 ---
 
-## 12. Performance-Überlegungen
+## 12. HTML Button Type Fallstrick ⚠️
+
+### Das Problem
+
+**KRITISCH:** Buttons innerhalb eines `<form>` ohne expliziten `type` haben den **Default-Typ `type="submit"`**!
+
+Das führt zu unerwartetem Form-Submit:
+
+```javascript
+// ❌ FALSCH - Triggert Form-Submit beim Klick!
+const $button = $('<button class="btn-add-more">➕ Weitere hinzufügen</button>');
+
+// ✅ RICHTIG - Nur Button-Click-Event
+const $button = $('<button type="button" class="btn-add-more">➕ Weitere hinzufügen</button>');
+```
+
+### Warum ist das problematisch?
+
+```html
+<form action="/submit" method="post">
+    <input type="file" id="upload" />
+
+    <!-- ❌ DIESER BUTTON SUBMITTED DAS FORMULAR! -->
+    <button class="add-files">Weitere Dateien</button>
+
+    <!-- ✅ DIESER BUTTON MACHT NUR CLICK-EVENT -->
+    <button type="button" class="add-files">Weitere Dateien</button>
+</form>
+```
+
+### In unserem Code
+
+Das Problem trat in `native-mode-complete.js` auf:
+
+**Betroffen waren:**
+1. "➕ Weitere hinzufügen" Button
+2. "✕ Entfernen" Button (pro Datei)
+3. "🗑️ Alle löschen" Button
+
+**Symptom:** Beim Klick auf "Weitere hinzufügen" wurde das Formcycle-Formular submitted, statt den Datei-Dialog zu öffnen.
+
+**Fix:**
+```javascript
+// Alle Buttons bekommen type="button"
+'<button type="button" class="btn-add-more">➕ Weitere hinzufügen</button>'
+'<button type="button" class="btn-remove">✕ Entfernen</button>'
+'<button type="button" class="btn-clear-all">🗑️ Alle löschen</button>'
+```
+
+### Best Practice
+
+**IMMER `type` explizit setzen:**
+
+| Use Case | Typ | Beispiel |
+|----------|-----|----------|
+| Form absenden | `type="submit"` | `<button type="submit">Senden</button>` |
+| Nur Click-Event | `type="button"` | `<button type="button">Abbrechen</button>` |
+| Formular zurücksetzen | `type="reset"` | `<button type="reset">Zurücksetzen</button>` |
+
+**jQuery:**
+```javascript
+// Option 1: Im HTML-String
+$('<button type="button">Click me</button>')
+
+// Option 2: Via attr()
+const $btn = $('<button>Click me</button>').attr('type', 'button');
+
+// Option 3: Via prop()
+const $btn = $('<button>Click me</button>').prop('type', 'button');
+```
+
+### Testing
+
+**So testen Sie, ob ein Button Submit triggert:**
+
+```javascript
+// In Browser-Console
+$('.btn-add-more').attr('type')  // Sollte "button" sein, NICHT undefined!
+
+// Oder prüfen ob Submit getriggert wird
+$('form').on('submit', function(e) {
+    console.log('⚠️ FORM SUBMIT TRIGGERED!');
+    e.preventDefault();
+});
+```
+
+---
+
+## 13. Performance-Überlegungen
 
 ### Große Dateilisten
 
@@ -479,7 +567,7 @@ function uploadInChunks(file, chunkSize = 5 * 1024 * 1024) {
 
 ---
 
-## 13. Bekannte Limitationen
+## 14. Bekannte Limitationen
 
 ### 1. Browser File-Picker
 
