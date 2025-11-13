@@ -14,6 +14,7 @@
  * ✅ Schöne UI mit Datei-Liste und Add/Remove Buttons
  * ✅ Validiert Dateityp und Dateinamen-Länge
  * ✅ Behält gültige Dateien, entfernt nur ungültige
+ * ✅ Kombiniert alte + neue Dateien automatisch
  *
  * DAS PROBLEM (Formcycle clientscript Zeile 083-084):
  * ```javascript
@@ -414,19 +415,30 @@
 
             // Change-Event für Validierung
             $field.off('change.injection').on('change.injection', function(e) {
-                const files = Array.from(e.target.files || []);
+                const newFiles = Array.from(e.target.files || []);
 
-                if (files.length === 0) return;
+                if (newFiles.length === 0) return;
 
-                log('📁 Dateien ausgewählt in', fieldId, ':', files.length);
+                log('📁 Neue Dateien ausgewählt in', fieldId, ':', newFiles.length);
 
-                const validation = validateFiles(files, $field);
+                // Hole vorherige Dateien (falls vorhanden)
+                const previousFiles = $field.data('validFiles') || [];
+
+                if (previousFiles.length > 0) {
+                    log('📋 Kombiniere mit', previousFiles.length, 'vorhandenen Datei(en)');
+                }
+
+                // Kombiniere alte + neue Dateien
+                const allFiles = [...previousFiles, ...newFiles];
+
+                const validation = validateFiles(allFiles, $field);
 
                 if (!validation.valid) {
                     if (validation.allInvalid) {
                         // ALLE Dateien ungültig - leere Input komplett
                         alert('❌ Alle Dateien ungültig:\n\n' + validation.errors.join('\n'));
                         e.target.value = '';
+                        $field.data('validFiles', []); // Lösche gespeicherte Dateien
                         log('❌ Alle Dateien entfernt (alle ungültig)');
                     } else if (validation.validFiles.length > 0) {
                         // Einige Dateien gültig, einige ungültig - behalte nur gültige
@@ -440,6 +452,9 @@
 
                         alert(message);
 
+                        // Speichere gültige Dateien für nächstes Mal
+                        $field.data('validFiles', validation.validFiles);
+
                         // Erstelle neue FileList nur mit gültigen Dateien
                         const dt = new DataTransfer();
                         validation.validFiles.forEach(file => {
@@ -452,12 +467,15 @@
                         // Keine gültigen Dateien (z.B. zu viele oder Gesamtgröße überschritten)
                         alert('❌ Upload nicht möglich:\n\n' + validation.errors.join('\n'));
                         e.target.value = '';
+                        $field.data('validFiles', []); // Lösche gespeicherte Dateien
                         log('❌ Alle Dateien entfernt');
                     }
                     return false;
+                } else {
+                    // Alle Dateien gültig - speichere sie
+                    $field.data('validFiles', validation.validFiles);
+                    log('✅ Alle Dateien gültig, werden hochgeladen...');
                 }
-
-                log('✅ Alle Dateien gültig, werden hochgeladen...');
             });
         });
 
@@ -684,6 +702,7 @@
         $btnClear.on('click', function() {
             if (confirm('Alle Dateien löschen?')) {
                 $field.val('');
+                $field.data('validFiles', []); // Lösche gespeicherte Dateien
                 updateFileList($field, $fileListContent, $emptyState, $btnClear, $stats);
                 log('🗑️ Alle Dateien gelöscht');
             }
@@ -793,13 +812,16 @@
 
         // Erstelle neue FileList ohne die zu entfernende Datei
         const dt = new DataTransfer();
+        const remainingFiles = [];
         files.forEach((file, index) => {
             if (index !== indexToRemove) {
                 dt.items.add(file);
+                remainingFiles.push(file);
             }
         });
 
         $field[0].files = dt.files;
+        $field.data('validFiles', remainingFiles); // Aktualisiere gespeicherte Dateien
         updateFileList($field, $fileListContent, $emptyState, $btnClear, $stats);
     }
 
