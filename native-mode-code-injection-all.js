@@ -441,7 +441,7 @@
                         $field.data('validFiles', []); // Lösche gespeicherte Dateien
                         log('❌ Alle Dateien entfernt (alle ungültig)');
                         // UI aktualisieren
-                        updateFileList($field, $fileListContent, $emptyState, $btnClear, $stats);
+                        updateFileList($field);
                     } else if (validation.validFiles.length > 0) {
                         // Einige Dateien gültig, einige ungültig - behalte nur gültige
                         const message = [
@@ -467,7 +467,7 @@
                         log(`✅ ${validation.validFiles.length} gültige Dateien behalten, ${validation.invalidFiles.length} ungültige entfernt`);
 
                         // UI aktualisieren mit ALLEN gültigen Dateien
-                        updateFileList($field, $fileListContent, $emptyState, $btnClear, $stats);
+                        updateFileList($field);
                     } else {
                         // Keine gültigen Dateien (z.B. zu viele oder Gesamtgröße überschritten)
                         alert('❌ Upload nicht möglich:\n\n' + validation.errors.join('\n'));
@@ -475,7 +475,7 @@
                         $field.data('validFiles', []); // Lösche gespeicherte Dateien
                         log('❌ Alle Dateien entfernt');
                         // UI aktualisieren
-                        updateFileList($field, $fileListContent, $emptyState, $btnClear, $stats);
+                        updateFileList($field);
                     }
                     return false;
                 } else {
@@ -491,7 +491,7 @@
 
                     log('✅ Alle Dateien gültig, werden hochgeladen...');
                     // UI aktualisieren mit ALLEN Dateien
-                    updateFileList($field, $fileListContent, $emptyState, $btnClear, $stats);
+                    updateFileList($field);
                 }
             });
         });
@@ -695,6 +695,14 @@
             $ui.append($banner, $fileList, $buttons, $stats);
             $container.find('label').after($ui);
 
+            // Speichere UI-Elemente als jQuery data für späteren Zugriff
+            $field.data('ui-elements', {
+                $fileListContent: $fileListContent,
+                $emptyState: $emptyState,
+                $btnClear: $btnClear,
+                $stats: $stats
+            });
+
             // Setup Event-Handlers
             setupUIHandlers($field, $fileListContent, $emptyState, $btnClear, $stats);
 
@@ -720,19 +728,32 @@
             if (confirm('Alle Dateien löschen?')) {
                 $field.val('');
                 $field.data('validFiles', []); // Lösche gespeicherte Dateien
-                updateFileList($field, $fileListContent, $emptyState, $btnClear, $stats);
+                updateFileList($field);
                 log('🗑️ Alle Dateien gelöscht');
             }
         });
 
         // Initial Update (change.injection Handler kümmert sich um spätere Updates)
-        updateFileList($field, $fileListContent, $emptyState, $btnClear, $stats);
+        updateFileList($field);
     }
 
     /**
      * Aktualisiert die Datei-Liste im UI
      */
     function updateFileList($field, $fileListContent, $emptyState, $btnClear, $stats) {
+        // Hole UI-Elemente aus jQuery data, falls nicht übergeben
+        if (!$fileListContent) {
+            const uiElements = $field.data('ui-elements');
+            if (!uiElements) {
+                log('⚠️ UI-Elemente nicht gefunden für updateFileList');
+                return;
+            }
+            $fileListContent = uiElements.$fileListContent;
+            $emptyState = uiElements.$emptyState;
+            $btnClear = uiElements.$btnClear;
+            $stats = uiElements.$stats;
+        }
+
         const files = Array.from($field[0].files || []);
 
         log('🔄 Aktualisiere UI:', files.length, 'Dateien');
@@ -797,7 +818,7 @@
 
             // Remove-Handler
             $btnRemove.on('click', function() {
-                removeFile($field, index, $fileListContent, $emptyState, $btnClear, $stats);
+                removeFile($field, index);
             });
 
             $fileItem.append($fileInfo, $btnRemove);
@@ -817,7 +838,7 @@
     /**
      * Entfernt eine einzelne Datei
      */
-    function removeFile($field, indexToRemove, $fileListContent, $emptyState, $btnClear, $stats) {
+    function removeFile($field, indexToRemove) {
         const files = Array.from($field[0].files || []);
 
         log('🗑️ Entferne Datei:', indexToRemove, files[indexToRemove].name);
@@ -834,7 +855,7 @@
 
         $field[0].files = dt.files;
         $field.data('validFiles', remainingFiles); // Aktualisiere gespeicherte Dateien
-        updateFileList($field, $fileListContent, $emptyState, $btnClear, $stats);
+        updateFileList($field);
     }
 
     /**
