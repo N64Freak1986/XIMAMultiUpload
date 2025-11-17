@@ -440,6 +440,8 @@
                         e.target.value = '';
                         $field.data('validFiles', []); // Lösche gespeicherte Dateien
                         log('❌ Alle Dateien entfernt (alle ungültig)');
+                        // UI aktualisieren
+                        updateFileList($field, $fileListContent, $emptyState, $btnClear, $stats);
                     } else if (validation.validFiles.length > 0) {
                         // Einige Dateien gültig, einige ungültig - behalte nur gültige
                         const message = [
@@ -463,18 +465,33 @@
                         e.target.files = dt.files;
 
                         log(`✅ ${validation.validFiles.length} gültige Dateien behalten, ${validation.invalidFiles.length} ungültige entfernt`);
+
+                        // UI aktualisieren mit ALLEN gültigen Dateien
+                        updateFileList($field, $fileListContent, $emptyState, $btnClear, $stats);
                     } else {
                         // Keine gültigen Dateien (z.B. zu viele oder Gesamtgröße überschritten)
                         alert('❌ Upload nicht möglich:\n\n' + validation.errors.join('\n'));
                         e.target.value = '';
                         $field.data('validFiles', []); // Lösche gespeicherte Dateien
                         log('❌ Alle Dateien entfernt');
+                        // UI aktualisieren
+                        updateFileList($field, $fileListContent, $emptyState, $btnClear, $stats);
                     }
                     return false;
                 } else {
                     // Alle Dateien gültig - speichere sie
                     $field.data('validFiles', validation.validFiles);
+
+                    // Erstelle FileList mit allen gültigen Dateien
+                    const dt = new DataTransfer();
+                    validation.validFiles.forEach(file => {
+                        dt.items.add(file);
+                    });
+                    e.target.files = dt.files;
+
                     log('✅ Alle Dateien gültig, werden hochgeladen...');
+                    // UI aktualisieren mit ALLEN Dateien
+                    updateFileList($field, $fileListContent, $emptyState, $btnClear, $stats);
                 }
             });
         });
@@ -708,12 +725,7 @@
             }
         });
 
-        // File-Change Handler
-        $field.on('change', function() {
-            updateFileList($field, $fileListContent, $emptyState, $btnClear, $stats);
-        });
-
-        // Initial Update
+        // Initial Update (change.injection Handler kümmert sich um spätere Updates)
         updateFileList($field, $fileListContent, $emptyState, $btnClear, $stats);
     }
 
