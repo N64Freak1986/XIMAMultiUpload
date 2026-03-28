@@ -23,8 +23,9 @@
     }
     console.log('✅ jQuery verfügbar:', $.fn.jquery);
 
-    // Prüfe ob Formcycle AjaxUploadManager verfügbar
-    if (!$.xutil || !$.xutil.ajaxUpload) {
+    // Prüfe ob Formcycle AjaxUploadManager verfügbar (kompatibel mit FC 8.4.x und 8.5.3+)
+    var ajaxUpload = $.xutil && ($.xutil.ajaxUpload || $.xutil.AjaxUploadManager);
+    if (!$.xutil || !ajaxUpload) {
         console.error('❌ Formcycle AjaxUploadManager nicht verfügbar!');
         console.error('   Stellen Sie sicher, dass Formcycle >= 8.4.2 verwendet wird.');
         return;
@@ -328,7 +329,10 @@
         const $field = $(event.field);
         if ($field[0] !== $uploadField[0]) return;
 
-        const percent = (event.progress.loaded / event.progress.total) * 100;
+        // Kompatibel mit FC 8.5.3+ (bytesUploaded/bytesTotal/ratio) und älteren Versionen (loaded/total)
+        const percent = event.progress.ratio !== undefined
+            ? event.progress.ratio * 100
+            : (event.progress.loaded / event.progress.total) * 100;
         log('Upload progress:', Math.round(percent) + '%');
         showProgress($field, 'Lädt...', percent);
     }
@@ -395,14 +399,24 @@
     createInfoBox($uploadField);
     log('✅ Info-Box erstellt');
 
-    // 4. Event-Handler registrieren
-    $.xutil.ajaxUpload.on('begin', onUploadBegin);
-    $.xutil.ajaxUpload.on('progress', onUploadProgress);
-    $.xutil.ajaxUpload.on('success', onUploadSuccess);
-    $.xutil.ajaxUpload.on('error', onUploadError);
-    $.xutil.ajaxUpload.on('remove', onFileRemove);
-    $.xutil.ajaxUpload.on('complete', onUploadComplete);
-    log('✅ Events registriert');
+    // 4. Event-Handler registrieren (kompatibel mit FC 8.4.x und 8.5.3+)
+    if (ajaxUpload.events) {
+        ajaxUpload.events.begin.on(onUploadBegin);
+        ajaxUpload.events.progress.on(onUploadProgress);
+        ajaxUpload.events.success.on(onUploadSuccess);
+        ajaxUpload.events.error.on(onUploadError);
+        ajaxUpload.events.remove.on(onFileRemove);
+        ajaxUpload.events.complete.on(onUploadComplete);
+        log('✅ Events registriert (FC 8.5.3+ EventSource API)');
+    } else {
+        ajaxUpload.on('begin', onUploadBegin);
+        ajaxUpload.on('progress', onUploadProgress);
+        ajaxUpload.on('success', onUploadSuccess);
+        ajaxUpload.on('error', onUploadError);
+        ajaxUpload.on('remove', onFileRemove);
+        ajaxUpload.on('complete', onUploadComplete);
+        log('✅ Events registriert (Legacy API)');
+    }
 
     console.log('\n==============================================');
     console.log('✅ INITIALISIERUNG ABGESCHLOSSEN!');
