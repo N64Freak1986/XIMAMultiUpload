@@ -342,7 +342,10 @@
         // Nur für unsere Upload-Felder
         if (!$field.is(CONFIG.UPLOAD_SELECTOR)) return;
 
-        const percent = (event.progress.loaded / event.progress.total) * 100;
+        // Kompatibel mit FC 8.5.3+ (bytesUploaded/bytesTotal/ratio) und älteren Versionen (loaded/total)
+        const percent = event.progress.ratio !== undefined
+            ? event.progress.ratio * 100
+            : (event.progress.loaded / event.progress.total) * 100;
         log('Upload progress:', Math.round(percent) + '%');
         showProgress($field, 'Lädt...', percent);
     }
@@ -469,24 +472,39 @@
      * Registriert globale Event-Handler
      */
     function registerGlobalEvents() {
-        // Prüfe ob AjaxUploadManager verfügbar
-        if (!$.xutil || !$.xutil.ajaxUpload) {
-            console.error('FEHLER: $.xutil.ajaxUpload nicht verfügbar!');
+        // Prüfe ob AjaxUploadManager verfügbar (kompatibel mit FC 8.4.x und 8.5.3+)
+        var ajaxUpload = $.xutil && ($.xutil.ajaxUpload || $.xutil.AjaxUploadManager);
+        if (!ajaxUpload) {
+            console.error('FEHLER: AjaxUploadManager nicht verfügbar!');
             console.error('Stellen Sie sicher, dass Formcycle >= 8.4.2 verwendet wird.');
             return;
         }
 
         log('Registriere globale Events');
 
-        // Upload-Events
-        $.xutil.ajaxUpload.on('begin', onUploadBegin);
-        $.xutil.ajaxUpload.on('progress', onUploadProgress);
-        $.xutil.ajaxUpload.on('success', onUploadSuccess);
-        $.xutil.ajaxUpload.on('error', onUploadError);
-        $.xutil.ajaxUpload.on('remove', onFileRemove);
-        $.xutil.ajaxUpload.on('complete', onUploadComplete);
-
-        log('Events registriert');
+        // FC 8.5.3+: Events über EventSource-Objekte auf AjaxUploadManager.events
+        // FC 8.4.x:  Events über $.xutil.ajaxUpload.on()
+        if (ajaxUpload.events) {
+            // FC 8.5.3+ Event-System
+            ajaxUpload.events.begin.on(onUploadBegin);
+            ajaxUpload.events.progress.on(onUploadProgress);
+            ajaxUpload.events.success.on(onUploadSuccess);
+            ajaxUpload.events.error.on(onUploadError);
+            ajaxUpload.events.remove.on(onFileRemove);
+            ajaxUpload.events.complete.on(onUploadComplete);
+            log('Events registriert (FC 8.5.3+ EventSource API)');
+        } else if (typeof ajaxUpload.on === 'function') {
+            // FC 8.4.x Legacy Event-System
+            ajaxUpload.on('begin', onUploadBegin);
+            ajaxUpload.on('progress', onUploadProgress);
+            ajaxUpload.on('success', onUploadSuccess);
+            ajaxUpload.on('error', onUploadError);
+            ajaxUpload.on('remove', onFileRemove);
+            ajaxUpload.on('complete', onUploadComplete);
+            log('Events registriert (Legacy $.xutil.ajaxUpload API)');
+        } else {
+            console.error('FEHLER: Keine kompatible Event-API gefunden!');
+        }
     }
 
     /**
