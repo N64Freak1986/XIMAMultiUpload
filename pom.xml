@@ -206,9 +206,13 @@
                                     <formcycle-version-requirement>${xfc.version}</formcycle-version-requirement>
                                     <Plugin-Key>${project.groupId}:${project.artifactId}</Plugin-Key>
                                     <Build-Timestamp>${maven.build.timestamp}</Build-Timestamp>
-                                    <Implementation-Title>${project.groupId}:${project.artifactId}</Implementation-Title>
+                                    <Implementation-Title>Multipler Upload</Implementation-Title>
                                     <Implementation-Vendor-Id>${project.groupId}</Implementation-Vendor-Id>
                                     <Implementation-Version>${project.version}</Implementation-Version>
+                                    <Bundle-Name>Multipler Upload</Bundle-Name>
+                                    <Bundle-Description>Natives Multi-File-Upload Widget und Formular-Erweiterung für XIMA FORMCYCLE ab Version 8.5.5</Bundle-Description>
+                                    <Bundle-Version>${project.version}</Bundle-Version>
+                                    <Bundle-Vendor>Benedikt</Bundle-Vendor>
                                 </manifestEntries>
                             </archive>
                         </configuration>
