@@ -1,0 +1,220 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>de.xima.fc.plugin</groupId>
+    <artifactId>fc-plugin-multi-upload</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+
+    <name>FORMCYCLE Plugin: Multipler Upload</name>
+    <description>Natives Multi-File-Upload Widget und Formular-Erweiterung für XIMA FORMCYCLE ab Version 8.5.5</description>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.build.timestamp.format>yyyyMMddHHmm</maven.build.timestamp.format>
+        <xfc.version>8.5.5</xfc.version>
+        <java.version>11</java.version>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+        <maven.compiler.release>11</maven.compiler.release>
+
+        <maven-assembly-plugin.version>3.6.0</maven-assembly-plugin.version>
+        <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
+        <maven-surefire-plugin.version>3.1.2</maven-surefire-plugin.version>
+        <junit.jupiter.version>5.9.3</junit.jupiter.version>
+        <fc-deploy-plugin-maven-plugin.version>8.0.5</fc-deploy-plugin-maven-plugin.version>
+        <fc-server-maven-plugin.version>8.5.3</fc-server-maven-plugin.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- FORMCYCLE BOM import for dependency version alignment -->
+            <dependency>
+                <groupId>de.xima.fc</groupId>
+                <artifactId>fc</artifactId>
+                <version>${xfc.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <!-- FORMCYCLE Plugin Common APIs (provided by FORMCYCLE runtime) -->
+        <dependency>
+            <groupId>de.xima.fc</groupId>
+            <artifactId>fc-plugin-common</artifactId>
+            <version>${xfc.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- FORMCYCLE Plugin Types (IPluginFormElementWidget, etc.) -->
+        <dependency>
+            <groupId>de.xima.fc</groupId>
+            <artifactId>fc-plugin-types</artifactId>
+            <version>${xfc.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- FORMCYCLE Logic APIs (models, form render context, validation, provided) -->
+        <dependency>
+            <groupId>de.xima.fc</groupId>
+            <artifactId>fc-logic</artifactId>
+            <version>${xfc.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- FORMCYCLE Form Common (models, properties, widgets) -->
+        <dependency>
+            <groupId>de.xima.fc</groupId>
+            <artifactId>fc-form-common</artifactId>
+            <version>${xfc.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Common runtime utilities provided by FORMCYCLE -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>fastjson</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.hp.gagawa</groupId>
+            <artifactId>gagawa</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.owasp.encoder</groupId>
+            <artifactId>encoder</artifactId>
+            <version>1.2.3</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Testing dependencies -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <version>${junit.jupiter.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>${junit.jupiter.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
+            <version>${junit.jupiter.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>${project.artifactId}</finalName>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+            </resource>
+        </resources>
+
+        <plugins>
+            <!-- Compiler plugin targeting Java 11 without newer language features -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven-compiler-plugin.version}</version>
+                <configuration>
+                    <release>11</release>
+                    <encoding>UTF-8</encoding>
+                    <showDeprecation>true</showDeprecation>
+                    <showWarnings>true</showWarnings>
+                </configuration>
+            </plugin>
+
+            <!-- Test runner plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven-surefire-plugin.version}</version>
+            </plugin>
+
+            <!-- Deploy plugin for uploading to FORMCYCLE: mvn fc-deploy:deploy -->
+            <plugin>
+                <groupId>de.xima.fc.maven.plugin</groupId>
+                <artifactId>fc-deploy-plugin-maven-plugin</artifactId>
+                <version>${fc-deploy-plugin-maven-plugin.version}</version>
+            </plugin>
+
+            <!-- Server plugin to run a local development FORMCYCLE 8.5.5 server: mvn fc-server:run-ms-war -->
+            <plugin>
+                <groupId>de.xima.fc.maven.plugin</groupId>
+                <artifactId>fc-server-maven-plugin</artifactId>
+                <version>${fc-server-maven-plugin.version}</version>
+                <configuration>
+                    <appDir>${project.basedir}/xfc-server</appDir>
+                    <bootstrap>
+                        <pluginManagement>
+                            <deployMavenProject>true</deployMavenProject>
+                        </pluginManagement>
+                    </bootstrap>
+                </configuration>
+            </plugin>
+
+            <!-- Assembly plugin to build FORMCYCLE-compatible plugin JAR with proper manifest -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>${maven-assembly-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>fat-jar</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <finalName>${project.artifactId}</finalName>
+                            <appendAssemblyId>false</appendAssemblyId>
+                            <descriptorRefs>
+                                <descriptorRef>jar-with-dependencies</descriptorRef>
+                            </descriptorRefs>
+                            <archive>
+                                <manifest>
+                                    <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                                </manifest>
+                                <manifestEntries>
+                                    <formcycle-version-requirement>${xfc.version}</formcycle-version-requirement>
+                                    <Plugin-Key>${project.groupId}:${project.artifactId}</Plugin-Key>
+                                    <Build-Timestamp>${maven.build.timestamp}</Build-Timestamp>
+                                    <Implementation-Title>${project.groupId}:${project.artifactId}</Implementation-Title>
+                                    <Implementation-Vendor-Id>${project.groupId}</Implementation-Vendor-Id>
+                                    <Implementation-Version>${project.version}</Implementation-Version>
+                                </manifestEntries>
+                            </archive>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
