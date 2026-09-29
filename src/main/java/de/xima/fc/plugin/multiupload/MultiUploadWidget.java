@@ -17,14 +17,21 @@ import de.xima.fc.form.common.models.IXValidationParams;
 import de.xima.fc.form.common.models.IXValidationResult;
 import de.xima.fc.form.common.models.XItemPropertyDesc;
 import de.xima.fc.form.common.models.XItemRenderCtx;
+import de.xima.fc.form.common.models.IXProcessUploadParams;
+import de.xima.fc.form.common.models.IXProcessUploadResult;
+import de.xima.fc.form.common.models.IXUpload;
 import de.xima.fc.form.common.models.XItemRenderData;
+import de.xima.fc.form.common.models.XProcessUploadResult;
 import de.xima.fc.form.common.models.XPropertyValue;
 import de.xima.fc.form.common.models.XValidationResult;
+import de.xima.fc.form.common.upload.IUploadPostProcessor;
+import de.xima.fc.form.common.upload.XUploadContentTransformer;
 import org.apache.commons.lang3.StringUtils;
 import org.owasp.encoder.Encode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -277,7 +284,7 @@ public class MultiUploadWidget implements IXItemWidget, IXValuableItem {
         if (StringUtils.isNotBlank(acceptAttr)) {
             fileInput.setAttribute("accept", acceptAttr);
         }
-        fileInput.setCSSClass("XValueItem fc-multi-upload-native-input");
+        fileInput.setCSSClass("XItem XUpload MultiUploadWidget fc-multi-upload-native-input validate-change");
         fileInput.setStyle("position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0;");
         wrapper.appendChild(fileInput);
 
@@ -448,6 +455,22 @@ public class MultiUploadWidget implements IXItemWidget, IXValuableItem {
         }
 
         return Collections.singletonList(new XValidationResult(true));
+    }
+
+    @Override
+    public IXProcessUploadResult processUpload(IXProcessUploadParams params) throws IOException {
+        if (params == null) {
+            return null;
+        }
+        IXUpload upload = params.getUpload();
+        if (upload == null) {
+            return null;
+        }
+        final List<IUploadPostProcessor> postProcessorChain = params.getPostProcessorChain();
+        if (postProcessorChain != null && !postProcessorChain.isEmpty()) {
+            upload = XUploadContentTransformer.transformXUpload(upload, postProcessorChain);
+        }
+        return new XProcessUploadResult(upload);
     }
 
     private static String buildAcceptAttribute(String allowedExtensions) {

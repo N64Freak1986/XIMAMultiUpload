@@ -8,12 +8,16 @@ import de.xima.fc.form.common.models.IXFormRenderConfig;
 import de.xima.fc.form.common.models.IXItemPropertiesData;
 import de.xima.fc.form.common.models.IXValidationParams;
 import de.xima.fc.form.common.models.IXValidationResult;
+import de.xima.fc.form.common.models.IXProcessUploadParams;
+import de.xima.fc.form.common.models.IXProcessUploadResult;
+import de.xima.fc.form.common.models.IXUpload;
 import de.xima.fc.form.common.models.XItemPropertyDesc;
 import de.xima.fc.form.common.models.XItemRenderData;
 import de.xima.fc.form.common.models.XPropertyValue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
@@ -28,6 +32,8 @@ import java.util.Properties;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MultiUploadWidgetTest {
@@ -221,6 +227,40 @@ class MultiUploadWidgetTest {
         assertNotNull(results);
         assertEquals(1, results.size());
         assertTrue(results.get(0).isValid());
+    }
+
+    @Test
+    void testProcessUploadWithNull() throws IOException {
+        assertNull(widget.processUpload(null));
+
+        IXProcessUploadParams emptyParams = (IXProcessUploadParams) Proxy.newProxyInstance(
+                getClass().getClassLoader(),
+                new Class<?>[]{IXProcessUploadParams.class},
+                (proxy, method, args) -> null
+        );
+        assertNull(widget.processUpload(emptyParams));
+    }
+
+    @Test
+    void testProcessUploadWithValidUpload() throws IOException {
+        IXUpload mockUpload = (IXUpload) Proxy.newProxyInstance(
+                getClass().getClassLoader(),
+                new Class<?>[]{IXUpload.class},
+                (proxy, method, args) -> "dummy"
+        );
+        IXProcessUploadParams params = (IXProcessUploadParams) Proxy.newProxyInstance(
+                getClass().getClassLoader(),
+                new Class<?>[]{IXProcessUploadParams.class},
+                (proxy, method, args) -> {
+                    if ("getUpload".equals(method.getName())) return mockUpload;
+                    if ("getPostProcessorChain".equals(method.getName())) return Collections.emptyList();
+                    return null;
+                }
+        );
+
+        IXProcessUploadResult result = widget.processUpload(params);
+        assertNotNull(result);
+        assertSame(mockUpload, result.getFileItemReplacement());
     }
 
     static class TestValidationParams implements IXValidationParams {
